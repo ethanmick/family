@@ -9,3 +9,61 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Household {
+  id      String   @id @default(dbgenerated("concat('tnt_', replace(cast(gen_random_uuid() as text), '-', ''))")) @db.Text
+  members Member[]
+}
+
+model House {
+  id      String    @id @default(dbgenerated("concat('hse_', replace(cast(gen_random_uuid() as text), '-', ''))")) @db.Text
+  address Address[]
+}
+
+model Address {
+  id             String  @id @default(dbgenerated("concat('adr_', replace(cast(gen_random_uuid() as text), '-', ''))")) @db.Text
+  line1          String // Street address, P.O. Box, company name, c/o
+  line2          String? // Apartment, suite, unit, building, floor, etc.
+  city           String
+  state_province String
+  postal_code    String
+  country        String // You could use ISO country codes or full country names
+  latitude       Float?
+  longitude      Float?
+
+  house   House  @relation(fields: [houseId], references: [id])
+  houseId String @db.Text
+}
+
+enum MemberStatus {
+  Alive
+  Deceased
+}
+
+model Member {
+  id       String       @id @default(dbgenerated("concat('mbr_', replace(cast(gen_random_uuid() as text), '-', ''))")) @db.Text
+  email    String?      @unique
+  password String?
+  fullName String
+  birthday DateTime?
+  nickname String?
+  picture  String?
+  species  String
+  status   MemberStatus
+
+  household   Household @relation(fields: [householdId], references: [id])
+  householdId String    @db.Text
+
+  target Relation[] @relation("target")
+  source Relation[] @relation("source")
+}
+
+model Relation {
+  source   Member @relation(fields: [sourceId], references: [id], name: "source")
+  sourceId String @db.Text
+  target   Member @relation(fields: [targetId], references: [id], name: "target")
+  targetId String @db.Text
+  relation String
+
+  @@unique([sourceId, targetId, relation])
+}
